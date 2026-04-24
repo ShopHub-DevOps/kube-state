@@ -1,0 +1,4 @@
+# OCI reference to the Helm chart for shop-operator
+# Example: oci://ghcr.io/shophub-devops/charts/shop-operator
+chart: TBD
+version: 0.1.0

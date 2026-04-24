@@ -1,0 +1,4 @@
+# Metadata about the local Kubernetes cluster
+name: local
+type: kind  # or minikube / k3s
+description: Local development cluster for ShopHub platform

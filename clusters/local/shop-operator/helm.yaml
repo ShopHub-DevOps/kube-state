@@ -1,4 +1,8 @@
-# OCI reference to the Helm chart for shop-operator
-# Example: oci://ghcr.io/shophub-devops/charts/shop-operator
-chart: TBD
-version: 0.1.0
+# Helm release definition for the shop-operator.
+# The chart is published from the helm-charts repository on every push
+# to develop and master. The actual pinned version is filled in by the
+# feature epic that introduces this release into the bootstrap script;
+# until then "TBD" makes it obvious the file is a stub.
+chart: oci://ghcr.io/shophub-devops/charts/shop-operator
+version: TBD
+namespace: shop-operator-system

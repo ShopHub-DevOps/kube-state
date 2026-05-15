@@ -1,0 +1,95 @@
+name: State CI
+
+on:
+  pull_request:
+    branches: [develop, master]
+    paths:
+      - "clusters/**"
+      - ".github/workflows/state-ci.yml"
+
+jobs:
+  validate:
+    name: Validate release definitions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install Python dependencies
+        run: pip install pyyaml
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.0
+
+      - name: Validate YAML in every cluster file
+        run: |
+          set -e
+          for f in $(find clusters -name "*.yaml"); do
+            echo "::group::yaml.safe_load $f"
+            python3 -c "import yaml; yaml.safe_load(open('$f'))"
+            echo "::endgroup::"
+          done
+
+      - name: Validate helm.yaml schema and render where possible
+        run: |
+          set -e
+          shopt -s nullglob
+          rendered_any=0
+          skipped_any=0
+          for release_dir in clusters/local/*/; do
+            release=$(basename "$release_dir")
+            helm_file="${release_dir}helm.yaml"
+            if [ ! -f "$helm_file" ]; then
+              continue
+            fi
+            echo "::group::release $release"
+            CHART=$(python3 -c "import yaml,sys; d=yaml.safe_load(open('$helm_file')) or {}; print(d.get('chart',''))")
+            VERSION=$(python3 -c "import yaml,sys; d=yaml.safe_load(open('$helm_file')) or {}; print(d.get('version',''))")
+            if [ -z "$CHART" ]; then
+              echo "::error file=$helm_file::missing required field 'chart'"
+              exit 1
+            fi
+            if [ -z "$VERSION" ]; then
+              echo "::error file=$helm_file::missing required field 'version'"
+              exit 1
+            fi
+            if [ "$VERSION" = "TBD" ]; then
+              echo "::notice file=$helm_file::version is TBD - skipping helm template; feature epic will pin a concrete version"
+              skipped_any=$((skipped_any + 1))
+              echo "::endgroup::"
+              continue
+            fi
+            VALUES_FILE="${release_dir}values.yaml"
+            VALUES_ARGS=""
+            if [ -f "$VALUES_FILE" ] && [ -s "$VALUES_FILE" ]; then
+              VALUES_ARGS="--values $VALUES_FILE"
+            fi
+            echo "helm template $release $CHART --version $VERSION $VALUES_ARGS"
+            helm template "$release" "$CHART" --version "$VERSION" $VALUES_ARGS
+            rendered_any=$((rendered_any + 1))
+            echo "::endgroup::"
+          done
+          echo "Releases rendered: $rendered_any, skipped (TBD version): $skipped_any"
+
+      - name: Validate cluster.yaml is a valid kind config
+        run: |
+          set -e
+          CLUSTER_FILE=clusters/local/cluster.yaml
+          if [ ! -f "$CLUSTER_FILE" ]; then
+            echo "::error::$CLUSTER_FILE is missing"
+            exit 1
+          fi
+          KIND=$(python3 -c "import yaml; print(yaml.safe_load(open('$CLUSTER_FILE')).get('kind',''))")
+          API_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('$CLUSTER_FILE')).get('apiVersion',''))")
+          if [ "$KIND" != "Cluster" ] || [ "$API_VERSION" != "kind.x-k8s.io/v1alpha4" ]; then
+            echo "::error file=$CLUSTER_FILE::expected kind=Cluster and apiVersion=kind.x-k8s.io/v1alpha4 (got kind=$KIND, apiVersion=$API_VERSION)"
+            exit 1
+          fi
+          echo "cluster.yaml looks like a valid kind Cluster config"

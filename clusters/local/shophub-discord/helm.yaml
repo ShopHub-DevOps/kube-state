@@ -1,4 +1,0 @@
-# OCI reference to the Helm chart for shophub-discord
-# Example: oci://ghcr.io/shophub-devops/charts/shophub-discord
-chart: TBD
-version: 0.1.0

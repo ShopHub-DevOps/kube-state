@@ -1,4 +1,10 @@
-# OCI reference to the Helm chart for shophub
-# Example: oci://ghcr.io/shophub-devops/charts/shophub
-chart: TBD
-version: 0.1.0
+# Helm release definition for the ShopHub platform panel. The chart
+# bundles kube-prometheus-stack as a subchart dependency, so installing
+# this release brings up both the panel and the observability stack.
+# The chart is published from the helm-charts repository on every push
+# to develop and master. The actual pinned version is filled in by the
+# feature epic that introduces this release into the bootstrap script;
+# until then "TBD" makes it obvious the file is a stub.
+chart: oci://ghcr.io/shophub-devops/charts/shophub
+version: TBD
+namespace: shophub

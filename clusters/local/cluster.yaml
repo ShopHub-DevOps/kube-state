@@ -1,4 +1,23 @@
-# Metadata about the local Kubernetes cluster
-name: local
-type: kind  # or minikube / k3s
-description: Local development cluster for ShopHub platform
+# kind cluster definition for the local ShopHub platform.
+# Apply with:
+#   kind create cluster --config clusters/local/cluster.yaml
+#
+# A single control-plane plus one worker keeps the kind footprint small
+# while still letting the scheduler spread workloads across two nodes,
+# which catches the obvious "everything happens to land on the same
+# node" class of mistake during local testing. Port mappings expose
+# the host's 80/443 so an in-cluster ingress controller is reachable
+# from the developer's browser without kubectl port-forward.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: shophub-local
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 443
+        protocol: TCP
+  - role: worker

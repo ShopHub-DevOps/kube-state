@@ -11,6 +11,12 @@ jobs:
   validate:
     name: Validate release definitions
     runs-on: ubuntu-latest
+    # `packages: read` is required for the GHCR login below to grant the
+    # GITHUB_TOKEN access to the private shop-operator and shophub chart
+    # packages; without it `helm template` on the OCI charts returns 403.
+    permissions:
+      contents: read
+      packages: read
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

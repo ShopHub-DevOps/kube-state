@@ -45,6 +45,27 @@ require() {
 
 require kind kubectl helm
 
+# 0. GHCR login (best effort). The shop-operator and shophub charts live in
+# private GHCR packages, so `helm install` needs to authenticate to pull them.
+# Token resolution order: $GHCR_TOKEN, then `gh auth token` if the gh CLI is
+# present. If neither is available we continue and let the OCI install fail
+# with a clear message rather than guessing credentials.
+ghcr_login() {
+  local user="${GHCR_USER:-${USER:-x-access-token}}"
+  local token="${GHCR_TOKEN:-}"
+  if [[ -z "$token" ]] && command -v gh >/dev/null 2>&1; then
+    token="$(gh auth token 2>/dev/null || true)"
+  fi
+  if [[ -z "$token" ]]; then
+    warn "no GHCR token found (set GHCR_TOKEN or run 'gh auth login'); OCI chart installs may fail until you 'helm registry login ghcr.io'"
+    return 0
+  fi
+  log "Logging in to ghcr.io"
+  echo "$token" | helm registry login ghcr.io --username "$user" --password-stdin \
+    || warn "GHCR login failed; OCI chart installs may fail"
+}
+ghcr_login
+
 # 1. kind cluster
 if kind get clusters 2>/dev/null | grep -qx "$CLUSTER_NAME"; then
   log "kind cluster '$CLUSTER_NAME' already exists, reusing it"

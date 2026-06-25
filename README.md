@@ -69,6 +69,15 @@ the cluster), `make reinstall` (down then up).
 
 Requirements on `PATH`: `kind`, `kubectl`, `helm` (v3.8+ for OCI support).
 
+The `shop-operator` and `shophub` charts are published as private GHCR
+packages, so `helm` must be authenticated to pull them. The bootstrap script
+logs in automatically using `GHCR_TOKEN` or, if unset, a token from the `gh`
+CLI (`gh auth login`). To do it by hand:
+
+```
+echo "$GHCR_TOKEN" | helm registry login ghcr.io -u <github-user> --password-stdin
+```
+
 Adoption of a GitOps agent (Flux or ArgoCD) to apply this state automatically
 is optional per spec section 5.3 and can replace the bootstrap script later.
 

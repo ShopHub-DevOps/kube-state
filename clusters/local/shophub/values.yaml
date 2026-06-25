@@ -1,1 +1,40 @@
-# values overrides for shophub
+# Value overrides for the shophub chart on the local kind cluster.
+# Keys mirror charts/shophub/values.yaml in the helm-charts repo.
+#
+# Image tags are pinned to the same build as the chart pin in helm.yaml.
+# The application images (shophub-backend / shophub-frontend) follow SemVer
+# from the shophub repo and are versioned independently of the chart, so the
+# tags below track the app release, not the chart pre-release string.
+backendImage: ghcr.io/shophub-devops/shophub-backend
+backendTag: "1.0.0"
+frontendImage: ghcr.io/shophub-devops/shophub-frontend
+frontendTag: "1.0.0"
+
+replicas: 1
+
+# Reachable through the kind ingress on the host (cluster.yaml maps 80/443).
+# Add `127.0.0.1 shophub.local` to /etc/hosts to open it in a browser.
+ingressHostname: "shophub.local"
+
+# Connection to the panel's own PostgreSQL. The Secret is expected to exist
+# in the shophub namespace before install (created by the bootstrap script or
+# managed out of band); never commit the real URL here.
+databaseSecretName: "shophub-postgres-secret"
+databaseSecretKey: "url"
+
+# SIWE (Sign-In With Ethereum) origin must match the ingress hostname.
+siweConfig:
+  domain: "shophub.local"
+  origin: "http://shophub.local"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+env:
+  NODE_ENV: production
+  LOG_LEVEL: info

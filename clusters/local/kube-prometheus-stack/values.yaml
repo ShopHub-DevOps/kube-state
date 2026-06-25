@@ -1,0 +1,106 @@
+# Value overrides for kube-prometheus-stack on the local kind cluster.
+#
+# Goals: keep the kind footprint small (modest resources, short retention,
+# the local-path "standard" storage class that kind ships with) while
+# enabling the two hooks the rest of the platform depends on:
+#   - Grafana dashboard sidecar, so helm-charts #9 can ship dashboards as
+#     labelled ConfigMaps and have them auto-loaded.
+#   - AlertmanagerConfig CRD matching, so helm-charts #10 can route alerts
+#     to Discord through per-tenant AlertmanagerConfig resources.
+
+# Discover ServiceMonitors / PodMonitors / rules in every namespace, not
+# just those carrying this release's Helm label. The Shop and ShopHub
+# charts live in their own namespaces, so without this their metrics and
+# rules would be invisible to Prometheus.
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    retention: 24h
+    resources:
+      requests:
+        cpu: 100m
+        memory: 400Mi
+      limits:
+        memory: 1Gi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: standard
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+
+alertmanager:
+  alertmanagerSpec:
+    # Match AlertmanagerConfig resources labelled for this platform in any
+    # namespace. helm-charts #10 attaches `alertmanagerConfig: shophub` to
+    # the configs it renders for Discord routing.
+    alertmanagerConfigSelector:
+      matchLabels:
+        alertmanagerConfig: shophub
+    alertmanagerConfigMatcherStrategy:
+      type: None
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: standard
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 1Gi
+
+grafana:
+  # Full authentication and maintainer lock-down is owned by helm-charts #11.
+  # Here we only set a non-default admin password so Grafana is not shipped
+  # with admin/admin; override this from a Secret in a real deployment.
+  adminPassword: shophub-local-admin
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      # Pick up dashboard ConfigMaps from every namespace (per-Shop
+      # dashboards are rendered into each tenant's namespace).
+      searchNamespace: ALL
+      provider:
+        foldersFromFilesStructure: true
+    datasources:
+      enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  persistence:
+    enabled: true
+    storageClassName: standard
+    size: 2Gi
+
+# Cluster-level metrics sources. Both stay on so the cluster dashboard
+# (helm-charts #9) and the Kubernetes alert rules have data to work with.
+nodeExporter:
+  enabled: true
+kubeStateMetrics:
+  enabled: true
+
+# kind runs a single embedded control-plane, so the hosted-control-plane
+# scrape targets below do not exist and would otherwise show as perpetually
+# down. Disable them to keep the cluster dashboard clean on kind.
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+kubeEtcd:
+  enabled: false

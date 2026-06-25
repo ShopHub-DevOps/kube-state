@@ -1,0 +1,15 @@
+# Helm release definition for kube-prometheus-stack.
+#
+# This is the shared observability foundation for the whole cluster:
+# Prometheus, Grafana, Alertmanager, node-exporter and kube-state-metrics.
+# It is installed once per cluster from this repository (the shophub chart
+# does NOT bundle it as a subchart), so every application-level dashboard
+# (helm-charts #9) and alert rule (helm-charts #10) lands on top of this
+# release. It must be applied before shop-operator and shophub.
+#
+# Pulled from the prometheus-community chart repository rather than GHCR,
+# so the bootstrap script runs `helm repo add` for the `repo` URL below.
+repo: https://prometheus-community.github.io/helm-charts
+chart: kube-prometheus-stack
+version: 87.2.1
+namespace: monitoring

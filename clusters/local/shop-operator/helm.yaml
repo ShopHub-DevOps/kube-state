@@ -1,8 +1,15 @@
 # Helm release definition for the shop-operator.
-# The chart is published from the helm-charts repository on every push
-# to develop and master. The actual pinned version is filled in by the
-# feature epic that introduces this release into the bootstrap script;
-# until then "TBD" makes it obvious the file is a stub.
+#
+# The chart is published from the helm-charts repository to GHCR on every
+# push to develop and master, versioned as `0.0.0-<branch>-<short-sha>`.
+# The pin below is the build from helm-charts develop @ 14ca2da. There is
+# no SemVer release tag yet; once helm-charts cuts a `v*` tag (e.g. v0.1.0)
+# the publish workflow emits a clean `0.1.0` artifact and this pin should be
+# bumped to it.
+#
+# Installed after CNPG and REDB (so the DB-tier operators exist before the
+# operator starts reconciling Shops) and before shophub. The chart ships the
+# Shop, DiscordChannel and Wallet CRDs in its crds/ folder.
 chart: oci://ghcr.io/shophub-devops/charts/shop-operator
-version: TBD
+version: 0.0.0-develop-14ca2da
 namespace: shop-operator-system

@@ -1,0 +1,21 @@
+# Value overrides for the CloudNativePG operator on the local kind cluster.
+#
+# A single operator replica is enough for local development and the demo.
+# Resource requests are kept low so the operator coexists with the rest of
+# the stack on a two-node kind cluster. The PostgreSQL Clusters themselves
+# are created later by shop-operator (one per Shop), not here; this release
+# only installs the operator and its CRDs.
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 100Mi
+  limits:
+    memory: 200Mi
+
+# Surface the operator's own metrics to Prometheus. The kube-prometheus-stack
+# release is configured to discover PodMonitors in every namespace, so this
+# lets the CNPG operator show up as a scrape target.
+monitoring:
+  podMonitorEnabled: true

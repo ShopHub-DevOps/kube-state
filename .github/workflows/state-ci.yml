@@ -11,6 +11,12 @@ jobs:
   validate:
     name: Validate release definitions
     runs-on: ubuntu-latest
+    # `packages: read` is required for the GHCR login below to grant the
+    # GITHUB_TOKEN access to the private shop-operator and shophub chart
+    # packages; without it `helm template` on the OCI charts returns 403.
+    permissions:
+      contents: read
+      packages: read
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -37,6 +43,17 @@ jobs:
             echo "::endgroup::"
           done
 
+      - name: Log in to GHCR for OCI charts
+        # The shop-operator and shophub charts live in private GHCR packages in
+        # this org. Logging in lets `helm template` pull them; for repo-based
+        # charts (kube-prometheus-stack, cnpg, redb) this step is a no-op.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GITHUB_TOKEN" | helm registry login ghcr.io \
+            --username "${{ github.actor }}" --password-stdin || \
+            echo "::warning::GHCR login failed; OCI chart rendering may be skipped if the package is not accessible"
+
       - name: Validate helm.yaml schema and render where possible
         run: |
           set -e
@@ -50,6 +67,7 @@ jobs:
               continue
             fi
             echo "::group::release $release"
+            REPO=$(python3 -c "import yaml,sys; d=yaml.safe_load(open('$helm_file')) or {}; print(d.get('repo',''))")
             CHART=$(python3 -c "import yaml,sys; d=yaml.safe_load(open('$helm_file')) or {}; print(d.get('chart',''))")
             VERSION=$(python3 -c "import yaml,sys; d=yaml.safe_load(open('$helm_file')) or {}; print(d.get('version',''))")
             if [ -z "$CHART" ]; then
@@ -66,13 +84,22 @@ jobs:
               echo "::endgroup::"
               continue
             fi
+            # Resolve the chart reference: a classic repo chart is added and
+            # referenced as <alias>/<chart>; an OCI chart is referenced directly.
+            if [ -n "$REPO" ]; then
+              helm repo add "$release" "$REPO" >/dev/null
+              CHART_REF="$release/$CHART"
+            else
+              CHART_REF="$CHART"
+            fi
+            helm repo update >/dev/null 2>&1 || true
             VALUES_FILE="${release_dir}values.yaml"
             VALUES_ARGS=""
             if [ -f "$VALUES_FILE" ] && [ -s "$VALUES_FILE" ]; then
               VALUES_ARGS="--values $VALUES_FILE"
             fi
-            echo "helm template $release $CHART --version $VERSION $VALUES_ARGS"
-            helm template "$release" "$CHART" --version "$VERSION" $VALUES_ARGS
+            echo "helm template $release $CHART_REF --version $VERSION $VALUES_ARGS"
+            helm template "$release" "$CHART_REF" --version "$VERSION" $VALUES_ARGS
             rendered_any=$((rendered_any + 1))
             echo "::endgroup::"
           done

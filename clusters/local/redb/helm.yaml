@@ -1,0 +1,17 @@
+# Helm release definition for the Redis Enterprise Operator (REDB).
+#
+# REDB is the cluster-wide operator that provisions Redis databases when
+# shop-operator reconciles a Shop CR with the `light` database tier. It
+# installs the RedisEnterpriseCluster / RedisEnterpriseDatabase CRDs that
+# shop-operator #11 consumes. Must be applied before shop-operator.
+#
+# CAVEAT (see issue #7 notes): the Redis Enterprise Operator targets a
+# licensed product and is heavy for a kind cluster - a RedisEnterpriseCluster
+# wants multiple nodes and accepts an EULA. If it proves impractical for the
+# academic demo, the documented fallback is a plain Redis StatefulSet that
+# shop-operator renders directly for the `light` tier. The spec names REDB
+# explicitly, so it stays pinned here as the preferred path.
+repo: https://helm.redis.io
+chart: redis-enterprise-operator
+version: 8.0.20-23
+namespace: redis-enterprise

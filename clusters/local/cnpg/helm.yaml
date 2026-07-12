@@ -1,0 +1,13 @@
+# Helm release definition for the CloudNativePG (CNPG) operator.
+#
+# CNPG is the cluster-wide operator that provisions PostgreSQL clusters
+# when shop-operator reconciles a Shop CR with the `standard` database
+# tier. It installs the `postgresql.cnpg.io` API (the Cluster CRD) that
+# shop-operator #10 consumes. Must be applied before shop-operator.
+#
+# CNPG bundles its own webhook certificates, so no separate cert-manager
+# release is required for this chart.
+repo: https://cloudnative-pg.github.io/charts
+chart: cloudnative-pg
+version: 0.28.3
+namespace: cnpg-system

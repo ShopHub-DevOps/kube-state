@@ -1,1 +1,28 @@
-# values overrides for shop-operator
+# Value overrides for the shop-operator chart on the local kind cluster.
+# Keys mirror charts/shop-operator/values.yaml in the helm-charts repo.
+#
+# The image tag is pinned to the same build as the chart pin in helm.yaml so
+# the operator binary and its packaged CRDs stay in lockstep. Bump both
+# together when helm-charts publishes a new version.
+image:
+  repository: ghcr.io/shophub-devops/shop-operator
+  tag: "0.0.0-develop-14ca2da"
+  pullPolicy: IfNotPresent
+
+replicas: 1
+logLevel: info
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# Expose the operator metrics port (charts/shop-operator wires a Service on
+# this port); kube-prometheus-stack discovers it across namespaces.
+service:
+  type: ClusterIP
+  port: 8080
+  metricsPort: 8081

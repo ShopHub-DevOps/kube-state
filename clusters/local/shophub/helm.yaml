@@ -1,10 +1,17 @@
-# Helm release definition for the ShopHub platform panel. The chart
-# bundles kube-prometheus-stack as a subchart dependency, so installing
-# this release brings up both the panel and the observability stack.
-# The chart is published from the helm-charts repository on every push
-# to develop and master. The actual pinned version is filled in by the
-# feature epic that introduces this release into the bootstrap script;
-# until then "TBD" makes it obvious the file is a stub.
+# Helm release definition for the ShopHub platform panel.
+#
+# Note: the shophub chart does NOT bundle kube-prometheus-stack as a
+# subchart (its Chart.yaml has no dependencies). Observability is a shared,
+# standalone release installed once per cluster from clusters/local/kube-prometheus-stack.
+# This release is the panel only - backend, frontend, ingress.
+#
+# The chart is published from the helm-charts repository to GHCR on every
+# push to develop and master, versioned as `0.0.0-<branch>-<short-sha>`.
+# The pin below is the build from helm-charts develop @ 14ca2da; bump it to
+# a clean SemVer once helm-charts cuts a `v*` release tag.
+#
+# Installed last, after kube-prometheus-stack, CNPG, REDB and shop-operator,
+# so the panel can create Shop CRs against an operator that is already up.
 chart: oci://ghcr.io/shophub-devops/charts/shophub
-version: TBD
+version: 0.0.0-develop-14ca2da
 namespace: shophub

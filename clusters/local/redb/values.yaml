@@ -1,0 +1,14 @@
+# Value overrides for the Redis Enterprise Operator on the local kind cluster.
+#
+# Left intentionally minimal: this release installs only the operator and its
+# CRDs. The Redis databases themselves are created later by shop-operator (one
+# RedisEnterpriseDatabase per `light`-tier Shop), not here.
+#
+# Note on resources: the operator chart pins its own conservative requests, so
+# overriding them is usually unnecessary on kind. If the operator pod fails to
+# schedule on a constrained machine, lower its requests here once the exact
+# value path is confirmed against `helm show values redis/redis-enterprise-operator`.
+#
+# If REDB turns out to be impractical for the demo (see helm.yaml caveat),
+# this whole release directory is dropped from the bootstrap order and the
+# `light` tier falls back to a plain Redis StatefulSet rendered by shop-operator.

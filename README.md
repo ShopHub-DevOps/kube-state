@@ -7,16 +7,25 @@ Declarative state of all Kubernetes clusters used by the ShopHub platform. This 
 ```
 kube-state
 ├── README.md
+├── Makefile                        # make up / down / status
+├── scripts/
+│   └── bootstrap.sh                # one-shot: create cluster + install all releases
 └── clusters/
     └── local/
-        ├── cluster.yaml        # cluster metadata
-        ├── shop-operator/
-        │   ├── helm.yaml       # OCI chart reference and pinned version
-        │   └── values.yaml     # value overrides
-        ├── shophub/
+        ├── cluster.yaml            # kind cluster definition
+        ├── kube-prometheus-stack/  # observability (Prometheus, Grafana, Alertmanager)
+        │   ├── helm.yaml           # chart reference and pinned version
+        │   └── values.yaml         # value overrides
+        ├── cnpg/                   # CloudNativePG operator (standard DB tier)
         │   ├── helm.yaml
         │   └── values.yaml
-        └── shophub-discord/
+        ├── redb/                   # Redis Enterprise operator (light DB tier)
+        │   ├── helm.yaml
+        │   └── values.yaml
+        ├── shop-operator/          # operator: Shop, DiscordChannel, Wallet CRDs
+        │   ├── helm.yaml
+        │   └── values.yaml
+        └── shophub/                # ShopHub platform panel
             ├── helm.yaml
             └── values.yaml
 ```
@@ -31,12 +40,46 @@ kube-state
 
 Each Helm release directory contains two files:
 
-- `helm.yaml`: OCI reference to the chart (for example `oci://ghcr.io/shophub-devops/charts/shop-operator`) and the pinned chart version.
-- `values.yaml`: Override values applied on top of the chart defaults.
+- `helm.yaml`: the chart reference and pinned version. Two forms are supported:
+  - an OCI chart published to GHCR, referenced directly (for example `chart: oci://ghcr.io/shophub-devops/charts/shop-operator`);
+  - a chart from a classic Helm repository, given as a `repo` URL plus a `chart` name (for example the `prometheus-community` repo and the `kube-prometheus-stack` chart).
+  Both forms also carry the target `namespace`.
+- `values.yaml`: override values applied on top of the chart defaults.
 
-## Applying state
+## Bringing the platform up
 
-For now, state is applied manually with `helm upgrade --install` using the values in this repository. Adoption of a GitOps agent (Flux or ArgoCD) is optional per spec section 5.3 and can be introduced later.
+The whole platform boots from nothing with one command:
+
+```
+make up          # or: ./scripts/bootstrap.sh
+```
+
+This creates the kind cluster from `clusters/local/cluster.yaml`, installs an
+ingress controller, and then installs every release in dependency order,
+waiting for each to become healthy before continuing:
+
+1. `kube-prometheus-stack` - shared observability foundation (must be first).
+2. `cnpg` - CloudNativePG operator for the `standard` PostgreSQL DB tier.
+3. `redb` - Redis Enterprise operator for the `light` Redis DB tier (skip with `SKIP_REDB=1`).
+4. `shop-operator` - reconciles Shop / DiscordChannel / Wallet CRDs; needs the DB operators present first.
+5. `shophub` - the platform panel that creates Shop CRs against the operator.
+
+Other targets: `make status` (releases, pods, Shop CRs), `make down` (delete
+the cluster), `make reinstall` (down then up).
+
+Requirements on `PATH`: `kind`, `kubectl`, `helm` (v3.8+ for OCI support).
+
+The `shop-operator` and `shophub` charts are published as private GHCR
+packages, so `helm` must be authenticated to pull them. The bootstrap script
+logs in automatically using `GHCR_TOKEN` or, if unset, a token from the `gh`
+CLI (`gh auth login`). To do it by hand:
+
+```
+echo "$GHCR_TOKEN" | helm registry login ghcr.io -u <github-user> --password-stdin
+```
+
+Adoption of a GitOps agent (Flux or ArgoCD) to apply this state automatically
+is optional per spec section 5.3 and can replace the bootstrap script later.
 
 ## Related repositories
 

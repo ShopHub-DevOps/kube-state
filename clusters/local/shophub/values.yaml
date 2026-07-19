@@ -1,5 +1,15 @@
 # Value overrides for the shophub chart on the local kind cluster.
 # Keys mirror charts/shophub/values.yaml in the helm-charts repo.
+
+# The shophub chart bundles kube-prometheus-stack so it can be installed
+# standalone. This cluster already runs a shared kube-prometheus-stack release
+# (see clusters/local/kube-prometheus-stack), and a second prometheus-operator
+# would reconcile the same cluster-wide ServiceMonitor/Prometheus objects, so
+# the bundled copy is disabled here. The chart's own observability content
+# (dashboards, PrometheusRule, ServiceMonitor, AlertmanagerConfig) still
+# renders and is picked up by the shared release.
+kube-prometheus-stack:
+  enabled: false
 #
 # Image tags are pinned to the same build as the chart pin in helm.yaml.
 # The application images (shophub-backend / shophub-frontend) follow SemVer

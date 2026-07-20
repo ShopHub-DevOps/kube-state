@@ -64,6 +64,16 @@ grafana:
   # Here we only set a non-default admin password so Grafana is not shipped
   # with admin/admin; override this from a Secret in a real deployment.
   adminPassword: shophub-local-admin
+  # Reachable at http://grafana.shophub.local through the kind ingress
+  # (cluster.yaml maps host ports 80/443). Requires an /etc/hosts entry:
+  #   127.0.0.1 grafana.shophub.local
+  # Without it every look at a dashboard needs `kubectl port-forward`, which is
+  # awkward mid-demo and collides with whatever else holds port 3000.
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - grafana.shophub.local
   sidecar:
     dashboards:
       enabled: true

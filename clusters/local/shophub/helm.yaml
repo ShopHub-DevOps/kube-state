@@ -1,9 +1,14 @@
 # Helm release definition for the ShopHub platform panel.
 #
-# Note: the shophub chart does NOT bundle kube-prometheus-stack as a
-# subchart (its Chart.yaml has no dependencies). Observability is a shared,
-# standalone release installed once per cluster from clusters/local/kube-prometheus-stack.
-# This release is the panel only - backend, frontend, ingress.
+# Note: the shophub chart DOES bundle kube-prometheus-stack as a subchart so
+# it can be installed standalone, but this cluster runs a shared, standalone
+# kube-prometheus-stack release (clusters/local/kube-prometheus-stack), so the
+# bundled copy is switched off in values.yaml via
+# `kube-prometheus-stack.enabled: false`. Two prometheus-operators would
+# otherwise reconcile the same cluster-wide objects. What this release brings
+# is the panel (backend, frontend, ingress) plus the observability *content*
+# (dashboards, PrometheusRule, ServiceMonitor, AlertmanagerConfig) that the
+# shared release consumes.
 #
 # The chart is published from the helm-charts repository to GHCR on every
 # push to develop and master, versioned as `0.0.0-<branch>-<short-sha>`.
